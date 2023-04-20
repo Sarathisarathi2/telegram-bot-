@@ -1,27 +1,29 @@
-import telegram
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import requests
+import os
 
+# Define the handler function for the /start command
 def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to the URL uploader bot! Send me a URL link to a file to upload.")
+    update.message.reply_text('Hi! Send me a file and I will upload it and give you the URL.')
 
+# Define the handler function for file uploads
 def upload_file(update, context):
-    url = update.message.text
-    response = requests.get(url)
-    filename = url.split("/")[-1]
-    with open(filename, "wb") as f:
-        f.write(response.content)
-    context.bot.send_document(chat_id=update.effective_chat.id, document=open(filename, "rb"))
-    context.bot.send_message(chat_id=update.effective_chat.id, text="File uploaded successfully!")
-    os.remove(filename)
+    # Get the file object
+    file_obj = update.message.document
+    # Download the file to a temporary directory
+    file_path = os.path.join(tempfile.gettempdir(), file_obj.file_name)
+    file_obj.get_file().download(file_path)
+    # Upload the file to a file hosting service and get the URL
+    url = upload_to_file_hosting_service(file_path)
+    # Send the URL back to the user
+    update.message.reply_text(url)
 
-def main():
-    updater = Updater(token='6280672598:AAEClKBN-liRYpiR9xb_DLT6HLdYcWw6cUQ', use_context=True)
-    dp = updater.dispatcher
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.regex('^(http|https):\/\/'), upload_file))
-    updater.start_polling()
-    updater.idle()
+# Create an Updater object and pass in your bot's API token
+updater = Updater('YOUR_API_TOKEN_HERE')
 
-if __name__ == '__main__':
-    main()
+# Register the command and message handlers
+updater.dispatcher.add_handler(CommandHandler('start', start))
+updater.dispatcher.add_handler(MessageHandler(Filters.document, upload_file))
+
+# Start the bot
+updater.start_polling(hi)
+updater.idle()
